@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:notes/services/Note.dart';
+import 'package:notes/services/storage.dart';
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  const Home({super.key, required this.storage});
+
+  final NotesStorage storage;
 
   @override
   State<Home> createState() => _HomeState();
@@ -10,20 +13,17 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
 
-  List<Note> notes = [
-    Note(noteTitle: 'Title', noteContent: 'Lorem Ipsum'),
-    Note(noteTitle: 'Title', noteContent: 'Lorem Ipsum'),
-    Note(noteTitle: 'Title', noteContent: 'Lorem Ipsum'),
-    Note(noteTitle: 'Title', noteContent: 'Lorem Ipsum'),
-    Note(noteTitle: 'Title', noteContent: 'Lorem Ipsum'),
-    Note(noteTitle: 'Title', noteContent: 'Lorem Ipsum'),
-    Note(noteTitle: 'Title', noteContent: 'Lorem Ipsum'),
-    Note(noteTitle: 'Title', noteContent: 'Lorem Ipsum'),
-    Note(noteTitle: 'Title', noteContent: 'Lorem Ipsum'),
-    Note(noteTitle: 'Title', noteContent: 'Lorem Ipsum'),
-    Note(noteTitle: 'Title', noteContent: 'Lorem Ipsum'),
-    Note(noteTitle: 'Title', noteContent: 'Lorem jopa'),
-  ];
+  List<Note> notes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    widget.storage.readNotes().then((value) => {
+      setState(() {
+        notes = value;
+      })
+    });
+  }
 
   final searchController = TextEditingController();
 
@@ -75,10 +75,15 @@ class _HomeState extends State<Home> {
                             'noteTitle': notes[index].noteTitle,
                             'noteContent': notes[index].noteContent,
                           });
+                          if (result == null) {
+                            return;
+                          } 
                           setState(() {
                             notes[index].noteTitle = result['noteTitle'];
                             notes[index].noteContent = result['noteContent'];
                           });
+
+                          widget.storage.writeNotes(notes);
                         },
                         title: Text(
                           notes[index].noteTitle,
@@ -106,6 +111,7 @@ class _HomeState extends State<Home> {
                             setState((){
                               notes.remove(notes[index]);
                             });
+                            widget.storage.writeNotes(notes);
                           },
                       ),
                     ),
@@ -118,10 +124,15 @@ class _HomeState extends State<Home> {
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
             dynamic result = await Navigator.pushNamed(context, '/add');
+            if (result == null) {
+              return;
+            }
             Note newNote = Note(noteTitle: result['noteTitle'], noteContent: result['noteContent']);
             setState(() {
               notes.add(newNote);
             });
+
+            widget.storage.writeNotes(notes);
           },
           backgroundColor: Colors.amber,
           child: const Icon(
